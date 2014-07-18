@@ -22,11 +22,18 @@ import LunaNext.Common 0.1
 import "../Connectors"
 import "Indicators"
 
-Row {
-    id: indicatorsRow
+Item {
+    id: systemIndicators
+
+    signal toggleSystemMenu
 
     anchors.margins: Units.gu(1) / 2
     spacing: Units.gu(1) / 2
+
+    MouseArea {
+        anchors.fill: parent
+        onClicked: toggleSystemMenu()
+    }
 
     BatteryService {
         id: batteryService
@@ -49,11 +56,11 @@ Row {
         enabled: telephonyService.offlineMode
     }
 
-    WifiIndicator {
-        id: wifiIndicator
+        WifiIndicator {
+            id: wifiIndicator
 
-        anchors.top: indicatorsRow.top
-        anchors.bottom: indicatorsRow.bottom
+            anchors.top: indicatorsRow.top
+            anchors.bottom: indicatorsRow.bottom
 
         enabled: wifiService.powered
         signalBars: wifiService.signalBars
@@ -88,5 +95,11 @@ Row {
         level: batteryService.level
         charging: batteryService.charging
         percentage: batteryService.percentage
+    }
+
+    Image {
+        id: systemMenuArrow
+        source: "../images/statusbar/menu-arrow.png"
+        anchors.verticalCenter: parent.verticalCenter
     }
 }
