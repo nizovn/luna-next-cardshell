@@ -127,6 +127,7 @@ Item {
         highlightRangeMode: ListView.StrictlyEnforceRange
         highlightFollowsCurrentItem: true
         highlightMoveDuration: 0
+        snapMode: ListView.SnapOneItem
 
         model: groupsDataModel
         spacing: Units.gu(2)
