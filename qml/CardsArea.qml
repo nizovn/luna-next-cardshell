@@ -333,6 +333,7 @@ WindowManager {
         gestureHandlerInstance: windowManager.gestureHandlerInstance
         fullLauncherVisible: launcherInstance.fullLauncherVisible
         justTypeLauncherActive: launcherInstance.justTypeLauncherActive
+        compositorInstance: compositor
 
         onShowPowerMenu: windowManager.showPowerMenu();
     }

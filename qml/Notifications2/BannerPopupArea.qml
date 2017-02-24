@@ -23,6 +23,7 @@ import LunaNext.Common 0.1
 
 Item {
     id: bannerItemsPopups
+    property string color: "black"
 
     property ListModel popupModel: ListModel {
         id: bannerItemsModel
@@ -80,11 +81,6 @@ Item {
             }
         }
 
-
-    Rectangle {
-        color: "black"
-        anchors.fill: parent
-    }
 
     function isEmpty(str) {
         if (typeof str == 'undefined' || !str || str.length === 0 || str === "" || !/[^\s]/.test(str) || /^\s*$/.test(str))
@@ -243,14 +239,21 @@ Item {
         return soundFileDuration;
     }
 
+    property int visibleWidth: {
+        var max = 0;
+        for(var i=0; i<bannerItemsPopups.children.length; i++) {
+            max = Math.max(max, bannerItemsPopups.children[i].width);
+        }
+        return max;
+    }
+
         Repeater {
         model: bannerItemsModel
         delegate:Rectangle {
             id: itemDelegate
-            color: "black"
-            width: bannerItemsPopups.width
+            color: bannerItemsPopups.color
             height: Units.gu(3)
-            y: Units.gu(3)
+            anchors.right: parent.right
 
             property int delegateIndex: index
 
@@ -300,8 +303,9 @@ Item {
 
                 NumberAnimation {
                     target: itemDelegate
-                    property: "y"; to: 0; duration: 500; easing.type: Easing.InOutQuad
+                    property: "width"; to: bannerItemsPopups.width; duration: 500; easing.type: Easing.InOutQuad
                 }
+
                 ScriptAction {
                     script: {
                         if(!isEmpty(notifsound.source))
@@ -311,19 +315,52 @@ Item {
 
                     }
                 }
-                PauseAnimation { duration: 1500 }
+
+                ScriptAction {
+                    script: timerAnimation.start();
+                }
+            }
+
+            Timer {
+                id: timerAnimation
+                running: false
+                interval: 3000
+                onTriggered: {
+                    slideOutItemAnimation.start();
+                }
+            }
+
+            SequentialAnimation {
+                id: slideOutItemAnimation
+                running: false
+
+                NumberAnimation {
+                    target: itemDelegate
+                    property: "width"; to: 0; duration: 500; easing.type: Easing.InOutQuad
+                }
+
                 ScriptAction {
                     script: bannerItemsModel.remove(delegateIndex);
                 }
             }
 
-            onDelegateIndexChanged: {
-                if( delegateIndex === 0 )
-                    slideItemAnimation.start();
+            Connections {
+                target: bannerItemsPopups.popupModel
+                onCountChanged: {
+                    if (delegateIndex < bannerItemsPopups.popupModel.count-1) {
+                        itemDelegate.opacity = 0.5;
+                        if (timerAnimation.running) {
+                            timerAnimation.stop();
+                            timerAnimation.triggered();
+                        }
+                        else
+                            timerAnimation.interval = 0;
+                    }
+                }
             }
+
             Component.onCompleted: {
-                if( delegateIndex === 0 )
-                    slideItemAnimation.start();
+                slideItemAnimation.start();
             }
         }
     }

@@ -30,6 +30,7 @@ Item {
     property int  itemIdent:     subItemIdent + headerIdent
     property int  edgeOffset: Units.gu(1.1) 
     property bool flickableOverride: false
+    property bool blackMode: false
 
     property bool airplaneModeInProgress: false
 
@@ -564,6 +565,7 @@ Item {
     }
 
     InverseMouseArea {
+        enabled: !systemMenu.blackMode
         width: mainMenu.width;
         height: Math.min(systemMenu.height - clipRect.anchors.topMargin - clipRect.anchors.bottomMargin, mainMenu.height);
         sensingArea: root

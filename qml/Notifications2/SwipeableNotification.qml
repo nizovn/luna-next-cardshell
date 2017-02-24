@@ -21,6 +21,7 @@ Item {
         // Put confortable margins on top and bottom of card to enable flicking
         leftMargin: swipeableRoot.width
         rightMargin: swipeableRoot.width
+        contentX: 0
 
         Item {
             width: swipeableRoot.width
@@ -32,6 +33,7 @@ Item {
                 sourceComponent: swipeableRoot.notifComponent
             }
         }
+        onContentXChanged: if (contentX>0) contentX=0;
 
         // Smooth movement when resetting card position
         Behavior on contentY {
@@ -57,8 +59,7 @@ Item {
 
         onDraggingChanged: {
             if(!dragging && !swipeoutNotification.running) {
-                if(contentX>(swipeableRoot.width*0.5) ||
-                   contentX<(-swipeableRoot.width*0.5))
+                if(contentX<(-swipeableRoot.width*0.5))
                 {
                     swipeoutNotification.start();
                 }
@@ -66,7 +67,7 @@ Item {
         }
         onFlickingChanged: {
             if(flicking && !swipeoutNotification.running) {
-                if(horizontalVelocity>1000 || horizontalVelocity<-1000)
+                if(horizontalVelocity<-1000)
                 {
                     swipeoutNotification.start();
                 }

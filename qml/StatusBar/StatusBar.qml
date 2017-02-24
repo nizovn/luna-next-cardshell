@@ -17,13 +17,14 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>
  */
 
-import QtQuick 2.0
+import QtQuick 2.5
 import LuneOS.Service 1.0
 import LunaNext.Common 0.1
 import LuneOS.Components 1.0
 
 import "../Utils"
 import "../AppTweaks"
+import "../Notifications2"
 
 import "SystemMenu"
 
@@ -42,6 +43,12 @@ Item {
     property string timeFormat: "HH24"
 
     property string carrierName: "LuneOS"
+    property string defaultColor: "#FF515558"
+    property real fontSize: carrierText.font.pixelSize
+
+    // blackMode: statusBar is black and nonsensitive to mouse events
+    property bool blackMode: windowManagerInstance.state==="firstuse" || state==="dockmode"
+    property QtObject compositorInstance
 
     signal showPowerMenu()
 
@@ -91,65 +98,50 @@ Item {
     }
 	
 
-    Rectangle {
+    Item {
         id: background
         anchors.fill: parent
-        color: "black"
 
-        Item {
-            id: title
+        Rectangle {
+            anchors.fill: parent
+            color: "black"
+            visible: statusBar.blackMode
+        }
+
+        Rectangle {
+            anchors.fill: parent
+            color: statusBar.defaultColor
+            opacity: (statusBar.state==="application-visible")||(statusBar.state==="launcher-visible")
+            Behavior on opacity { NumberAnimation {duration: 300} }
+            visible: !statusBar.blackMode
+        }
+
+        Image {
+            source: "../images/statusbar/status-bar-background.png"
+            fillMode: Image.TileHorizontally
+            verticalAlignment: Image.AlignLeft
+            anchors.fill: parent
+            visible: !statusBar.blackMode
+        }
+
+        Text {
+            id: titleTextDate
             anchors.top: parent.top
             anchors.bottom: parent.bottom
             anchors.horizontalCenter: parent.horizontalCenter
-            anchors.topMargin: parent.height * 0.2
-            anchors.bottomMargin: parent.height * 0.2
-            implicitWidth: titleText.contentWidth
+            visible: statusBar.state === "lockscreen"
+            horizontalAlignment: Text.AlignHCenter
+            verticalAlignment: Text.AlignVCenter
+            color: "white"
+            font.family: Settings.fontStatusBar
+            font.pixelSize: statusBar.fontSize
+            font.bold: true
 
-			LunaService {
-                id: timeFormatQuery
-
-                name: "org.webosports.luna"
-                usePrivateBus: true
-
-                onInitialized: {
-                    probeTimeFormat()
-                }
-
+            function updateClock() {
+                titleTextDate.text = Qt.formatDateTime(new Date(), "M/d/yy")
             }
 
-			
-            Text {
-                id: titleText
-                anchors.fill: parent
-                horizontalAlignment: Text.AlignHCenter
-                color: "white"
-                font.family: Settings.fontStatusBar
-                font.pixelSize: parent.height
-                font.bold: true
-
-                //Set the default to Time in case no Tweaks option has been set yet.
-                Timer {
-                    id: clockTimer
-                    interval: 1000
-                    running: true
-                    repeat: true
-                    onTriggered: titleText.updateClock()
-                }
-
-                function updateClock() {
-                    if (AppTweaks.dateTimeTweakValue === "dateTime")
-                        titleText.text = timeFormat === "HH24" ? Qt.formatDateTime(new Date(),
-                                                           "dd-MMM-yyyy h:mm") : Qt.formatDateTime(new Date(),
-                                                           "dd-MMM-yyyy h:mm AP")
-                    else if (AppTweaks.dateTimeTweakValue === "timeOnly")
-                        titleText.text = timeFormat === "HH24" ? Qt.formatTime(new Date(), "h:mm") : Qt.formatTime(new Date(), "h:mm AP")
-                    else if (AppTweaks.dateTimeTweakValue === "dateOnly")
-                        titleText.text = Qt.formatDate(new Date(),
-                                                           "dd-MMM-yyyy") 
-                }
-
-                text: timeFormat === "HH24" ? Qt.formatDateTime(new Date(), "h:mm") : Qt.formatDateTime(new Date(), "h:mm AP")
-            }
+            text: Qt.formatDateTime(new Date(), "M/d/yy")
         }
 
         Item {
@@ -157,8 +149,9 @@ Item {
             anchors.top: parent.top
             anchors.bottom: parent.bottom
             anchors.left: parent.left
-            anchors.topMargin: parent.height * 0.2
-            anchors.bottomMargin: parent.height * 0.2
+            anchors.topMargin: parent.height * 0.25
+            anchors.bottomMargin: parent.height * 0.25
+            anchors.leftMargin: parent.height * 0.25
             width: (background.width / 2) - Units.gu(3)
             visible: !appMenu.visible
 
@@ -178,6 +171,7 @@ Item {
                 id: carrierText
                 anchors.fill: parent
                 horizontalAlignment: Text.AlignHLeft
+                verticalAlignment: Text.AlignVCenter
                 color: "white"
                 font.family: Settings.fontStatusBar
                 font.pixelSize: parent.height
@@ -210,11 +204,132 @@ Item {
             anchors.left: parent.left
         }
 
-        SystemIndicators {
+        NotificationArea {
+            id: notificationAreaInstance
+            anchors.top: parent.top
+            height: parent.height
+            anchors.right: systemIndicators.left
+            maxDashboardWindowHeight: windowManagerInstance.screenheight*0.67
+            blackMode: statusBar.blackMode
+            visible: !lockScreen.visible
+
+            windowManagerInstance: statusBar.windowManagerInstance
+            compositorInstance: statusBar.compositorInstance
+        }
+
+        BorderImage {
+            id: systemMenuOpenBg
+            visible: systemMenu.visible && statusBar.state!=="dockmode"
+            source: "../images/statusbar/status-bar-menu-dropdown-tab.png"
+            anchors.top: parent.top
+            anchors.bottom: parent.bottom
+
+            width: parent.width-systemIndicators.x+19
+            x: systemIndicatorsBoundingRect.x-9
+            smooth: false
+            border.left: 11
+            border.right: 11
+            border.top: 2
+        }
+
+        Item {
+            id: systemIndicatorsBoundingRect
+            anchors.top: parent.top
+            anchors.bottom: parent.bottom
+            anchors.right: parent.right
+            width: systemIndicators.width+2*systemIndicators.anchors.margins-systemIndicators.spacing
+        }
+
+        Row {
             id: systemIndicators
             anchors.top: parent.top
             anchors.bottom: parent.bottom
             anchors.right: parent.right
+            anchors.margins: Units.gu(1) / 2
+            spacing: Units.gu(1) / 2
+
+            Image {
+                id: statusBarSeparator
+                source: "../images/statusbar/status-bar-separator.png"
+                anchors.verticalCenter: parent.verticalCenter
+                height: statusBar.height
+                width: 2
+                mipmap: true
+                opacity: !systemMenu.visible
+                visible: statusBar.state!=="lockscreen"
+            }
+
+            SystemIndicators {
+                anchors.top: parent.top
+                anchors.bottom: parent.bottom
+                spacing: parent.spacing
+            }
+
+            Item {
+                id: title
+                anchors.top: parent.top
+                anchors.bottom: parent.bottom
+                implicitWidth: titleText.contentWidth
+                visible: statusBar.state!=="lockscreen"
+
+                LunaService {
+                    id: timeFormatQuery
+
+                    name: "org.webosports.luna"
+                    usePrivateBus: true
+
+                    onInitialized: {
+                        probeTimeFormat()
+                    }
+                }
+
+                Text {
+                    id: titleText
+                    anchors.fill: parent
+                    horizontalAlignment: Text.AlignHCenter
+                    verticalAlignment: Text.AlignVCenter
+                    color: "white"
+                    font.family: Settings.fontStatusBar
+                    font.pixelSize: statusBar.fontSize
+                    font.bold: true
+
+                    //Set the default to Time in case no Tweaks option has been set yet.
+                    Timer {
+                        id: clockTimer
+                        interval: 1000
+                        running: true
+                        repeat: true
+                        onTriggered: {
+                            titleText.updateClock()
+                            titleTextDate.updateClock()
+                        }
+                    }
+
+                    function updateClock() {
+                        if (AppTweaks.dateTimeTweakValue === "dateTime")
+                            titleText.text = timeFormat === "HH24" ? Qt.formatDateTime(new Date(),
+                                                               "dd-MMM-yyyy h:mm") : Qt.formatDateTime(new Date(),
+                                                               "dd-MMM-yyyy h:mm AP")
+                        else if (AppTweaks.dateTimeTweakValue === "timeOnly")
+                            titleText.text = timeFormat === "HH24" ? Qt.formatTime(new Date(), "h:mm") : Qt.formatTime(new Date(), "h:mm AP")
+                        else if (AppTweaks.dateTimeTweakValue === "dateOnly")
+                            titleText.text = Qt.formatDate(new Date(),
+                                                               "dd-MMM-yyyy")
+                    }
+
+                    text: timeFormat === "HH24" ? Qt.formatDateTime(new Date(), "h:mm") : Qt.formatDateTime(new Date(), "h:mm AP")
+                }
+            }
+
+            Image {
+                id: systemMenuArrow
+                source: "../images/statusbar/menu-arrow.png"
+                anchors.verticalCenter: parent.verticalCenter
+                height: Units.gu(2.6)
+                width: Units.gu(1.5)
+                mipmap: true
+                visible: !statusBar.blackMode && !(statusBar.state==="lockscreen")
+            }
         }
 
         MouseArea {
@@ -231,19 +346,26 @@ Item {
         Connections {
             target: lockScreen
             onLockedChanged: {
-                if (systemMenu.isVisible())
-                    systemMenu.toggleState()
+                if (lockScreen.locked) {
+                    systemMenu.visibleBeforeLock = systemMenu.isVisible();
+                    systemMenu.visible = false;
+                }
+                else {
+                    systemMenu.visible = systemMenu.visibleBeforeLock;
+                }
             }
         }
 
         Connections {
             target: gestureHandlerInstance
             onScreenEdgeFlickEdgeTop: {
-                if (!timeout && windowManagerInstance.gesturesEnabled === true) {
+                if (!timeout && windowManagerInstance.gesturesEnabled === true && !statusBar.blackMode) {
                     if (appMenu.contains(mapToItem(appMenu, pos.x, pos.y)))
                         appMenu.toggleState()
-                    else if (systemMenu.contains(mapToItem(systemMenu, pos.x, systemMenu.y)))
+                    else if (systemIndicatorsBoundingRect.contains(mapToItem(systemIndicatorsBoundingRect, pos.x, pos.y)))
                         systemMenu.toggleState()
+                    else if (notificationAreaInstance.boundingRect.contains(mapToItem(notificationAreaInstance.boundingRect, pos.x, pos.y)))
+                        notificationAreaInstance.clicked()
                 }
             }
         }
@@ -252,7 +374,9 @@ Item {
             id: systemMenu
             anchors.top: parent.bottom
             visible: false
+            blackMode: statusBar.blackMode
             x: parent.width - systemMenu.width + systemMenu.edgeOffset
+            property bool visibleBeforeLock: false
 
             onCloseSystemMenu: {
                 systemMenu.resetMenu()
@@ -295,13 +419,24 @@ Item {
             name: "application-visible"
             PropertyChanges { target: statusBar; visible: true }
             PropertyChanges { target: appMenu; state: "appmenu" }
+        },
+        State {
+            name: "launcher-visible"
+            PropertyChanges { target: statusBar; visible: true }
+            PropertyChanges { target: carrierText; text: "Launcher"}
+            PropertyChanges { target: appMenu; state: "hidden" }
+        },
+        State {
+            name: "lockscreen"
+            PropertyChanges { target: statusBar; visible: true }
+            PropertyChanges { target: appMenu; state: "hidden" }
         }
     ]
 
     Connections {
         target: windowManagerInstance
         onSwitchToLockscreen: {
-            state = "default"
+            state = "lockscreen"
         }
         onSwitchToDockMode: {
             state = "dockmode"
@@ -316,7 +451,7 @@ Item {
             state = "default"
         }
         onSwitchToLauncherView: {
-            state = "default"
+            state = "launcher-visible"
             if (systemMenu.isVisible())
                 systemMenu.toggleState()
         }
