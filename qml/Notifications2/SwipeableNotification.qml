@@ -5,6 +5,7 @@ Item {
     property Component notifComponent
     property alias interactive: flickableArea.interactive
     property alias notifItem: notifLoader.item
+    property bool blockSwipesToLeft: true
 
     signal requestDestruction()
 
@@ -33,7 +34,7 @@ Item {
                 sourceComponent: swipeableRoot.notifComponent
             }
         }
-        onContentXChanged: if (contentX>0) contentX=0;
+        onContentXChanged: if ((contentX>0) && (swipeableRoot.blockSwipesToLeft)) contentX=0;
 
         // Smooth movement when resetting card position
         Behavior on contentY {
@@ -59,7 +60,8 @@ Item {
 
         onDraggingChanged: {
             if(!dragging && !swipeoutNotification.running) {
-                if(contentX<(-swipeableRoot.width*0.5))
+                if( ((!swipeableRoot.blockSwipesToLeft)&&(contentX>swipeableRoot.width*0.5)) ||
+                   contentX<(-swipeableRoot.width*0.5))
                 {
                     swipeoutNotification.start();
                 }
@@ -67,7 +69,8 @@ Item {
         }
         onFlickingChanged: {
             if(flicking && !swipeoutNotification.running) {
-                if(horizontalVelocity<-1000)
+                if( ((!swipeableRoot.blockSwipesToLeft)&&(horizontalVelocity>1000)) ||
+                   horizontalVelocity<-1000)
                 {
                     swipeoutNotification.start();
                 }
