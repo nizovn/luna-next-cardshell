@@ -225,6 +225,7 @@ WindowManager {
         z: 1 // on top of cardview when no card is active
     }
 
+/*
     NotificationArea {
         id: notificationAreaInstance
 
@@ -238,6 +239,13 @@ WindowManager {
         visible: !lockScreen.visible
 
         z: 2 // on top of cardview when no card is active
+    }
+*/
+    Item {
+        id: notificationAreaInstance
+        anchors.bottom: gestureAreaInstance.visible ? gestureAreaInstance.top : gestureAreaInstance.bottom
+        anchors.left: parent.left
+        anchors.right: parent.right
     }
 
     AlertWindowsArea {
