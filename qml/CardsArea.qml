@@ -238,7 +238,7 @@ WindowManager {
 
         Component.onCompleted: if (!Settings.tabletUi) {
             notificationAreaInstance.setSource("Notifications/NotificationArea.qml",
-                {"compositorInstance": compositor, windowManagerInstance: parent});
+                {"compositorInstance": compositor, "windowManagerInstance": parent, "maxDashboardWindowHeight": parent.height/2});
         }
     }
 
