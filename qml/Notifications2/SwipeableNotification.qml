@@ -5,7 +5,7 @@ Item {
     property Component notifComponent
     property alias interactive: flickableArea.interactive
     property alias notifItem: notifLoader.item
-    property bool blockSwipesToLeft: true
+    property bool blockSwipesToLeft: false
 
     signal requestDestruction()
 
@@ -60,7 +60,7 @@ Item {
 
         onDraggingChanged: {
             if(!dragging && !swipeoutNotification.running) {
-                if( ((!swipeableRoot.blockSwipesToLeft)&&(contentX>swipeableRoot.width*0.5)) ||
+                if(contentX>(swipeableRoot.width*0.5) ||
                    contentX<(-swipeableRoot.width*0.5))
                 {
                     swipeoutNotification.start();

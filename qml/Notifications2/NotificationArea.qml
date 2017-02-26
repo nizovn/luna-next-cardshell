@@ -438,6 +438,7 @@ Rectangle {
                 property int delegateIndex: index
 
                 notifComponent: notificationItemLoaderComponent
+                blockSwipesToLeft: true
 
                 height: delegateHeight
                 width: openListView.width
