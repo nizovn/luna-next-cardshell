@@ -225,12 +225,8 @@ WindowManager {
         z: 1 // on top of cardview when no card is active
     }
 
-/*
-    NotificationArea {
+    Loader {
         id: notificationAreaInstance
-
-        compositorInstance: compositor
-        windowManagerInstance: parent
 
         anchors.bottom: gestureAreaInstance.visible ? gestureAreaInstance.top : gestureAreaInstance.bottom
         anchors.left: parent.left
@@ -239,13 +235,11 @@ WindowManager {
         visible: !lockScreen.visible
 
         z: 2 // on top of cardview when no card is active
-    }
-*/
-    Item {
-        id: notificationAreaInstance
-        anchors.bottom: gestureAreaInstance.visible ? gestureAreaInstance.top : gestureAreaInstance.bottom
-        anchors.left: parent.left
-        anchors.right: parent.right
+
+        Component.onCompleted: if (!Settings.tabletUi) {
+            notificationAreaInstance.setSource("Notifications/NotificationArea.qml",
+                {"compositorInstance": compositor, windowManagerInstance: parent});
+        }
     }
 
     AlertWindowsArea {

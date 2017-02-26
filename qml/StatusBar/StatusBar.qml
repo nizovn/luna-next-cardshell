@@ -40,7 +40,6 @@ Item {
     property bool justTypeLauncherActive: false
     property Item batteryService
     property Item wifiService
-    property string timeFormat: "HH24"
 
     property string carrierName: "LuneOS"
     property string defaultColor: "#FF515558"
@@ -80,33 +79,10 @@ Item {
         console.log("Failed to call networkStatus service: " + message)
     }
 
-    function probeTimeFormat()
-    {
-        timeFormatQuery.subscribe(
-                    "luna://com.palm.systemservice/getPreferences",
-                    JSON.stringify({"subscribe":true, "keys":["timeFormat"]}),
-                    onTimeFormatChanged, onTimeFormatError)
-    }
-
-    function onTimeFormatChanged(message) {
-		var response = JSON.parse(message.payload)
-        timeFormat = response.timeFormat
-    }
-
-    function onTimeFormatError(message) {
-        console.log("Failed to call timeFormat service: " + message)
-    }
-	
-
-    Item {
+    Rectangle {
         id: background
         anchors.fill: parent
-
-        Rectangle {
-            anchors.fill: parent
-            color: "black"
-            visible: statusBar.blackMode
-        }
+        color: statusBar.blackMode?"black":"transparent";
 
         Rectangle {
             anchors.fill: parent
@@ -211,6 +187,7 @@ Item {
             anchors.right: systemIndicators.left
             maxDashboardWindowHeight: windowManagerInstance.screenheight*0.67
             blackMode: statusBar.blackMode
+            enabled: !statusBar.blackMode
             visible: !lockScreen.visible
 
             windowManagerInstance: statusBar.windowManagerInstance
@@ -265,60 +242,13 @@ Item {
                 spacing: parent.spacing
             }
 
-            Item {
+            TweaksClock {
                 id: title
                 anchors.top: parent.top
                 anchors.bottom: parent.bottom
-                implicitWidth: titleText.contentWidth
                 visible: statusBar.state!=="lockscreen"
-
-                LunaService {
-                    id: timeFormatQuery
-
-                    name: "org.webosports.luna"
-                    usePrivateBus: true
-
-                    onInitialized: {
-                        probeTimeFormat()
-                    }
-                }
-
-                Text {
-                    id: titleText
-                    anchors.fill: parent
-                    horizontalAlignment: Text.AlignHCenter
-                    verticalAlignment: Text.AlignVCenter
-                    color: "white"
-                    font.family: Settings.fontStatusBar
-                    font.pixelSize: statusBar.fontSize
-                    font.bold: true
-
-                    //Set the default to Time in case no Tweaks option has been set yet.
-                    Timer {
-                        id: clockTimer
-                        interval: 1000
-                        running: true
-                        repeat: true
-                        onTriggered: {
-                            titleText.updateClock()
-                            titleTextDate.updateClock()
-                        }
-                    }
-
-                    function updateClock() {
-                        if (AppTweaks.dateTimeTweakValue === "dateTime")
-                            titleText.text = timeFormat === "HH24" ? Qt.formatDateTime(new Date(),
-                                                               "dd-MMM-yyyy h:mm") : Qt.formatDateTime(new Date(),
-                                                               "dd-MMM-yyyy h:mm AP")
-                        else if (AppTweaks.dateTimeTweakValue === "timeOnly")
-                            titleText.text = timeFormat === "HH24" ? Qt.formatTime(new Date(), "h:mm") : Qt.formatTime(new Date(), "h:mm AP")
-                        else if (AppTweaks.dateTimeTweakValue === "dateOnly")
-                            titleText.text = Qt.formatDate(new Date(),
-                                                               "dd-MMM-yyyy")
-                    }
-
-                    text: timeFormat === "HH24" ? Qt.formatDateTime(new Date(), "h:mm") : Qt.formatDateTime(new Date(), "h:mm AP")
-                }
+                fontSize: statusBar.fontSize
+                onTriggered: titleTextDate.updateClock()
             }
 
             Image {
@@ -359,13 +289,15 @@ Item {
         Connections {
             target: gestureHandlerInstance
             onScreenEdgeFlickEdgeTop: {
-                if (!timeout && windowManagerInstance.gesturesEnabled === true && !statusBar.blackMode) {
+                if (!timeout && windowManagerInstance.gesturesEnabled === true) {
                     if (appMenu.contains(mapToItem(appMenu, pos.x, pos.y)))
                         appMenu.toggleState()
-                    else if (systemIndicatorsBoundingRect.contains(mapToItem(systemIndicatorsBoundingRect, pos.x, pos.y)))
-                        systemMenu.toggleState()
-                    else if (notificationAreaInstance.boundingRect.contains(mapToItem(notificationAreaInstance.boundingRect, pos.x, pos.y)))
-                        notificationAreaInstance.clicked()
+                    else if (!statusBar.blackMode) {
+                        if (systemIndicatorsBoundingRect.contains(mapToItem(systemIndicatorsBoundingRect, pos.x, pos.y)))
+                            systemMenu.toggleState()
+                        else if (notificationAreaInstance.boundingRect.contains(mapToItem(notificationAreaInstance.boundingRect, pos.x, pos.y)))
+                            notificationAreaInstance.clicked()
+                    }
                 }
             }
         }
@@ -374,7 +306,7 @@ Item {
             id: systemMenu
             anchors.top: parent.bottom
             visible: false
-            blackMode: statusBar.blackMode
+            enabled: !statusBar.blackMode
             x: parent.width - systemMenu.width + systemMenu.edgeOffset
             property bool visibleBeforeLock: false
 

@@ -322,8 +322,6 @@ Rectangle {
     }
 
     onClicked: {
-        if (notificationArea.blackMode)
-            return;
         bannerItemsPopups.popupModel.clear();
         if (notificationArea.state === "minimized") {
             notificationArea.state = "open";
