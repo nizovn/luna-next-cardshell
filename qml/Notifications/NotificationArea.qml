@@ -204,7 +204,7 @@ Rectangle {
             onRowsAboutToBeRemoved: {
                 if( !bannerItemsPopups.popupModel.get(last).sticky )
                 {
-                    notificationMgr.closeById(bannerItemsPopups.popupModel.get(last).object.replacesId);
+                    mergedModel.notificationMgr.closeById(bannerItemsPopups.popupModel.get(last).object.replacesId);
                 }
             }
         }

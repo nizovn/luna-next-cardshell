@@ -24,7 +24,6 @@ import LuneOS.Components 1.0
 
 import "../Utils"
 import "../AppTweaks"
-import "../Notifications2"
 
 import "SystemMenu"
 
@@ -82,14 +81,14 @@ Item {
     Rectangle {
         id: background
         anchors.fill: parent
-        color: statusBar.blackMode?"black":"transparent";
+        color: (!Settings.tabletUi || statusBar.blackMode)?"black":"transparent";
 
         Rectangle {
             anchors.fill: parent
             color: statusBar.defaultColor
             opacity: (statusBar.state==="application-visible")||(statusBar.state==="launcher-visible")
             Behavior on opacity { NumberAnimation {duration: 300} }
-            visible: !statusBar.blackMode
+            visible: Settings.tabletUi && !statusBar.blackMode
         }
 
         Image {
@@ -97,7 +96,7 @@ Item {
             fillMode: Image.TileHorizontally
             verticalAlignment: Image.AlignLeft
             anchors.fill: parent
-            visible: !statusBar.blackMode
+            visible: Settings.tabletUi && !statusBar.blackMode
         }
 
         Text {
@@ -118,6 +117,21 @@ Item {
             }
 
             text: Qt.formatDateTime(new Date(), "M/d/yy")
+        }
+
+        Component {
+            id: tweaksClock
+            TweaksClock {
+                visible: statusBar.state!=="lockscreen"
+                fontSize: statusBar.fontSize
+                onTriggered: titleTextDate.updateClock()
+            }
+        }
+
+        Loader {
+            id: phoneTweaksClock
+            anchors.fill: parent
+            sourceComponent: !Settings.tabletUi? tweaksClock : undefined;
         }
 
         Item {
@@ -180,23 +194,29 @@ Item {
             anchors.left: parent.left
         }
 
-        NotificationArea {
+        Loader {
             id: notificationAreaInstance
             anchors.top: parent.top
             height: parent.height
             anchors.right: systemIndicators.left
-            maxDashboardWindowHeight: windowManagerInstance.screenheight*0.67
-            blackMode: statusBar.blackMode
             enabled: !statusBar.blackMode
             visible: !lockScreen.visible
+            active: Settings.tabletUi
 
-            windowManagerInstance: statusBar.windowManagerInstance
-            compositorInstance: statusBar.compositorInstance
+            Component.onCompleted: {
+                notificationAreaInstance.setSource("../Notifications/NotificationAreaTablet.qml",
+                {
+                    "windowManagerInstance": statusBar.windowManagerInstance,
+                    "compositorInstance": statusBar.compositorInstance,
+                    "maxDashboardWindowHeight": windowManagerInstance.screenheight*0.67,
+                    "blackMode": statusBar.blackMode,
+                });
+            }
         }
 
         BorderImage {
             id: systemMenuOpenBg
-            visible: systemMenu.visible && statusBar.state!=="dockmode"
+            visible: Settings.tabletUi && systemMenu.visible && statusBar.state!=="dockmode"
             source: "../images/statusbar/status-bar-menu-dropdown-tab.png"
             anchors.top: parent.top
             anchors.bottom: parent.bottom
@@ -232,7 +252,7 @@ Item {
                 height: statusBar.height
                 width: 2
                 mipmap: true
-                opacity: !systemMenu.visible
+                opacity: Settings.tabletUi && !systemMenu.visible
                 visible: statusBar.state!=="lockscreen"
             }
 
@@ -242,13 +262,11 @@ Item {
                 spacing: parent.spacing
             }
 
-            TweaksClock {
-                id: title
+            Loader {
+                id: tabletTweaksClock
                 anchors.top: parent.top
                 anchors.bottom: parent.bottom
-                visible: statusBar.state!=="lockscreen"
-                fontSize: statusBar.fontSize
-                onTriggered: titleTextDate.updateClock()
+                sourceComponent: Settings.tabletUi? tweaksClock : undefined;
             }
 
             Image {
@@ -293,10 +311,12 @@ Item {
                     if (appMenu.contains(mapToItem(appMenu, pos.x, pos.y)))
                         appMenu.toggleState()
                     else if (!statusBar.blackMode) {
-                        if (systemIndicatorsBoundingRect.contains(mapToItem(systemIndicatorsBoundingRect, pos.x, pos.y)))
+                        if (!Settings.tabletUi && systemMenu.contains(mapToItem(systemMenu, pos.x, systemMenu.y)))
                             systemMenu.toggleState()
-                        else if (notificationAreaInstance.boundingRect.contains(mapToItem(notificationAreaInstance.boundingRect, pos.x, pos.y)))
-                            notificationAreaInstance.clicked()
+                        else if (Settings.tabletUi && systemIndicatorsBoundingRect.contains(mapToItem(systemIndicatorsBoundingRect, pos.x, pos.y)))
+                            systemMenu.toggleState()
+                        else if ((notificationAreaInstance.status === Loader.Ready) && notificationAreaInstance.item.boundingRect.contains(mapToItem(notificationAreaInstance.item.boundingRect, pos.x, pos.y)))
+                            notificationAreaInstance.item.clicked()
                     }
                 }
             }
